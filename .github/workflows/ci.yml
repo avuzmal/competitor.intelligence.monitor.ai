@@ -35,7 +35,7 @@ jobs:
         WEBHOOK_SECRET: "dummy_webhook_secret_for_ci"
         JWT_SECRET_KEY: "dummy_jwt_secret_for_ci"
       run: |
-        pytest
+        python -m pytest
         
   frontend-build:
     runs-on: ubuntu-latest
