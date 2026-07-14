@@ -35,11 +35,11 @@ The system is designed as an asynchronous, event-driven pipeline that moves data
 
 ```mermaid
 graph TD
-    %% Define Styles
-    classDef external fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef core fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef db fill:#bfb,stroke:#333,stroke-width:2px;
-    classDef client fill:#fbb,stroke:#333,stroke-width:2px;
+    %% Define Premium Styles
+    classDef external fill:#6366f1,color:#fff,stroke:#4f46e5,stroke-width:2px,rx:8,ry:8;
+    classDef core fill:#3b82f6,color:#fff,stroke:#2563eb,stroke-width:2px,rx:8,ry:8;
+    classDef db fill:#10b981,color:#fff,stroke:#059669,stroke-width:2px,rx:8,ry:8;
+    classDef client fill:#f43f5e,color:#fff,stroke:#e11d48,stroke-width:2px,rx:8,ry:8;
 
     %% Orchestration
     N8N[n8n Webhook Trigger]:::external -->|Initiates Weekly Run| API(FastAPI Backend):::core
