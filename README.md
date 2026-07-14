@@ -14,6 +14,8 @@
   </p>
 </div>
 
+![UI Screenshot](./assets/ui-screenshot.png) <!-- TODO: Replace with actual running UI GIF -->
+
 <hr />
 
 ## 🌟 Overview
