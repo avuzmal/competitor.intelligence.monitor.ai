@@ -10,6 +10,7 @@ class Client(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     email_address = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=True) # Optional for clients created via API earlier
     is_active = Column(sqlalchemy.Boolean, default=True, nullable=False)
     stripe_customer_id = Column(String, index=True, nullable=True)
     slack_webhook_url = Column(String, nullable=True)
