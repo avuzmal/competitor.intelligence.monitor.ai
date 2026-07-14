@@ -1,84 +1,95 @@
-# Competitor Radar Core
+<div align="center">
+  <img src="https://img.icons8.com/color/96/000000/radar.png" alt="Radar Icon" width="80" />
+  <h1 align="center">Competitor Intelligence Monitor AI</h1>
+  
+  <p align="center">
+    <strong>Fully automated AI Agent that tracks competitors, calculates weekly deltas, and delivers executive briefings.</strong>
+  </p>
 
-An automated Competitive Intelligence AI Agent backend. 
+  <p align="center">
+    <a href="https://github.com/avuzmal/competitor.intelligence.monitor.ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/avuzmal/competitor.intelligence.monitor.ai/ci.yml?branch=main" alt="Build Status"></a>
+    <a href="https://github.com/avuzmal/competitor.intelligence.monitor.ai/stargazers"><img src="https://img.shields.io/github/stars/avuzmal/competitor.intelligence.monitor.ai" alt="Stars"></a>
+    <a href="https://github.com/avuzmal/competitor.intelligence.monitor.ai/network/members"><img src="https://img.shields.io/github/forks/avuzmal/competitor.intelligence.monitor.ai" alt="Forks"></a>
+    <a href="https://github.com/avuzmal/competitor.intelligence.monitor.ai/issues"><img src="https://img.shields.io/github/issues/avuzmal/competitor.intelligence.monitor.ai" alt="Issues"></a>
+  </p>
+</div>
 
-This product scrapes competitor data weekly via Apify, calculates the exact changes ("delta") compared to the previous week, and sends this delta to Anthropic's Claude to generate strategic business insights. These insights are then delivered to clients as premium, mobile-responsive HTML emails via Resend.
+<hr />
 
-## Tech Stack
-- **Language**: Python 3.11+
-- **Framework**: FastAPI
-- **Database**: PostgreSQL (SQLAlchemy 2.0 + Alembic)
-- **Validation**: Pydantic V2
-- **External APIs**: Apify (Scraping), Anthropic (AI), Resend (Email)
-- **Containerization**: Docker & Docker Compose
-- **Resilience & Observability**: Tenacity, Structlog
+## 🌟 Overview
 
----
+The **Competitor Intelligence Monitor AI** is a production-ready SaaS template built to provide high-level, automated competitive intelligence.
 
-## 🚀 Running Locally with Docker Compose (Recommended)
+It orchestrates scraping competitor websites, calculating structural changes ("deltas"), analyzing those changes with LLMs (Claude), and delivering polished, actionable briefings directly to clients via Email, Slack, and a modern Web Portal.
 
-You can spin up the entire application (FastAPI + PostgreSQL) easily with Docker Compose.
-
-1. **Environment Variables**:
-   Copy the example environment file and fill in your API keys.
-   ```bash
-   cp .env.example .env
-   ```
-   *Make sure you provide valid API keys for Apify, Anthropic, and Resend, as well as a strong `WEBHOOK_SECRET`.*
-
-2. **Start the Stack**:
-   ```bash
-   docker compose up --build
-   ```
-   The API will be available at `http://localhost:8000`.
-
-3. **Run Database Migrations**:
-   While the containers are running, execute Alembic migrations inside the `app` container:
-   ```bash
-   docker compose exec app alembic upgrade head
-   ```
+### Key Features
+- 🤖 **AI Delta Engine**: Automatically detects precise week-over-week changes in competitor websites.
+- 🧠 **Claude Integration**: Synthesizes raw data into structured, strategic business insights.
+- ✉️ **Multi-Channel Delivery**: Beautiful HTML emails (via Resend) and Slack Webhook integration.
+- 💳 **Stripe Billing**: Built-in subscription management for B2B clients.
+- 💻 **Premium Client Portal**: A Next.js 14 frontend utilizing Shadcn UI for a pristine user experience.
 
 ---
 
-## 🛠 Manual Local Setup
+## 🛠 Tech Stack
 
-If you prefer to run it without Docker:
-
-1. **Virtual Environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Or .\venv\Scripts\Activate.ps1 on Windows
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run Migrations (SQLite default)**:
-   ```bash
-   alembic upgrade head
-   ```
-
-4. **Start the Server**:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+| Domain | Technology |
+|---|---|
+| **Backend API** | FastAPI (Python 3.11+) |
+| **Frontend Portal** | Next.js 14, Tailwind CSS, Shadcn UI |
+| **Database & ORM** | PostgreSQL, SQLAlchemy 2.0, Alembic |
+| **Data Orchestration** | Apify Python SDK, n8n (Webhooks) |
+| **AI / LLM** | Anthropic Claude SDK, Pydantic V2 (Structured JSON) |
+| **Infrastructure** | Docker, Docker Compose |
 
 ---
 
-## 🔗 n8n Webhook Configuration
+## 🚀 Quick Start (Local Development)
 
-To fully automate the weekly briefings, you should set up an orchestration pipeline in n8n (or any cron-like service). 
+The easiest way to run the entire backend stack locally is via Docker.
 
-### Setup Instructions for n8n:
-1. **Cron Node**: Create a Cron/Schedule Trigger node set to run every Sunday night (e.g., `0 20 * * 0`).
-2. **HTTP Request Node**:
-   - **Method**: `POST`
-   - **URL**: `https://<your-production-url>/api/v1/webhooks/n8n/trigger-all`
-   - **Headers**:
-     - `X-Webhook-Secret`: `<your-configured-WEBHOOK_SECRET>`
-3. **Execute**: When triggered, the backend will securely authenticate the request, fetch all active clients and their competitors, generate the AI insights in the background, and email the reports.
+### 1. Clone the repository
+```bash
+git clone https://github.com/avuzmal/competitor.intelligence.monitor.ai.git
+cd competitor.intelligence.monitor.ai
+```
 
-If you need to test a specific client individually, use the endpoint:
-`POST /api/v1/webhooks/n8n/trigger-client/{client_id}`
+### 2. Environment Variables
+Copy the example environment file and fill in your API keys (Apify, Anthropic, Resend, Stripe).
+```bash
+cp .env.example .env
+```
+
+### 3. Spin up the Backend Stack
+```bash
+docker compose up --build
+```
+The FastAPI backend will be available at `http://localhost:8000`.
+
+### 4. Run the Frontend (Client Portal)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The portal will be available at `http://localhost:3000`.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps to contribute:
+1. Check the [Issues](https://github.com/avuzmal/competitor.intelligence.monitor.ai/issues) tab for outstanding bugs or feature requests.
+2. Fork the repository.
+3. Create a feature branch (`git checkout -b feature/amazing-feature`).
+4. Commit your changes (`git commit -m 'Add amazing feature'`).
+5. Push to the branch (`git push origin feature/amazing-feature`).
+6. Open a **Pull Request** using our PR template.
+
+See `.github/PULL_REQUEST_TEMPLATE.md` for our review guidelines.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
