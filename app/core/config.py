@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     from_email: str = "Competitor Radar <hello@competitor-radar.com>"
     webhook_secret: str = "super-secret-default-key-change-me"
     log_level: str = "INFO"
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

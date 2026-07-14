@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.api.v1 import ingestion, insights, clients, competitors, orchestration, webhooks
+from app.api.v1 import ingestion, insights, clients, competitors, orchestration, webhooks, billing, dashboard
 from app.core.logging import setup_logging
 
 @asynccontextmanager
@@ -22,6 +22,8 @@ app.include_router(clients.router, prefix="/api/v1")
 app.include_router(competitors.router, prefix="/api/v1")
 app.include_router(orchestration.router, prefix="/api/v1")
 app.include_router(webhooks.router, prefix="/api/v1")
+app.include_router(billing.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")
 
 @app.get("/")
 def root():

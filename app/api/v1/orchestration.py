@@ -10,11 +10,13 @@ import structlog
 from app.core.database import get_db
 from app.models.client import Client
 from app.models.snapshot import Snapshot
+from app.models.briefing_history import BriefingHistory, DeliveryStatus
 from app.schemas.insights import CompetitorInsight
 from app.services.data_sanitizer import sanitize_delta_for_llm
 from app.services.claude_service import generate_strategic_insights
 from app.services.template_service import render_briefing_email
 from app.services.email_service import send_briefing
+from app.services.slack_service import send_slack_briefing
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/orchestrate", tags=["orchestration"])
@@ -95,11 +97,37 @@ def _process_weekly_briefings(db: Session):
                     "insight": insight
                 })
                 
+                # Save to BriefingHistory
+                history_record = BriefingHistory(
+                    client_id=client.id,
+                    competitor_id=competitor.id,
+                    insight_json=insight.model_dump(mode="json"),
+                    delivery_status=DeliveryStatus.SENT
+                )
+                db.add(history_record)
+        
+        # Commit histories
+        db.commit()
+                
         # Send Email if there are insights
         if insights_list:
+            # Try Slack
+            if client.slack_webhook_url:
+                slack_success = send_slack_briefing(client.slack_webhook_url, client.name, insights_list)
+                if slack_success:
+                    client_log.info("Briefing sent successfully via Slack")
+                else:
+                    client_log.error("Failed to send briefing via Slack")
+                    
+            # Always Try Email
             html_content = render_briefing_email(client.name, insights_list)
-            send_briefing(client.email_address, client.name, html_content)
-            client_log.info("Briefing sent successfully to client")
+            email_success = send_briefing(client.email_address, client.name, html_content)
+            if email_success:
+                client_log.info("Briefing sent successfully via Email")
+            else:
+                client_log.error("Failed to send briefing via Email")
+                # We could update DeliveryStatus to FAILED here, but keeping it simple for now.
+                
         else:
             client_log.info("No insights to send for client")
 

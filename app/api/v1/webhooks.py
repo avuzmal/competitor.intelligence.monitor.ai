@@ -46,12 +46,14 @@ def _process_single_client_briefing(db: Session, client_id: int):
     # We will just duplicate the loop body for the single client here.
     from typing import Dict, Any
     from app.models.snapshot import Snapshot
+    from app.models.briefing_history import BriefingHistory, DeliveryStatus
     from deepdiff import DeepDiff
     from app.api.v1.orchestration import _parse_diff
     from app.services.data_sanitizer import sanitize_delta_for_llm
     from app.services.claude_service import generate_strategic_insights
     from app.services.template_service import render_briefing_email
     from app.services.email_service import send_briefing
+    from app.services.slack_service import send_slack_briefing
 
     client_log = logger.bind(client_id=client.id, client_name=client.name)
     insights_list: List[Dict[str, Any]] = []
@@ -96,10 +98,24 @@ def _process_single_client_briefing(db: Session, client_id: int):
         if insight.what_changed or insight.what_it_means or insight.what_to_do:
             insights_list.append({"competitor_name": competitor.name, "insight": insight})
             
+            history_record = BriefingHistory(
+                client_id=client.id,
+                competitor_id=competitor.id,
+                insight_json=insight.model_dump(mode="json"),
+                delivery_status=DeliveryStatus.SENT
+            )
+            db.add(history_record)
+            
+    db.commit()
+            
     if insights_list:
+        if client.slack_webhook_url:
+            send_slack_briefing(client.slack_webhook_url, client.name, insights_list)
+            client_log.info("Briefing sent via Slack")
+            
         html_content = render_briefing_email(client.name, insights_list)
         send_briefing(client.email_address, client.name, html_content)
-        client_log.info("Briefing sent successfully")
+        client_log.info("Briefing sent via Email")
     else:
         client_log.info("No insights to send for client")
 
