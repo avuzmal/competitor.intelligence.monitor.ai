@@ -30,10 +30,12 @@ jobs:
         # Stop the build if there are Python syntax errors or undefined names
         ruff check . --select=E9,F63,F7,F82 --output-format=github
         
-    # We would run tests here:
-    # - name: Run tests with pytest
-    #   run: |
-    #     pytest
+    - name: Run tests with pytest
+      env:
+        WEBHOOK_SECRET: "dummy_webhook_secret_for_ci"
+        JWT_SECRET_KEY: "dummy_jwt_secret_for_ci"
+      run: |
+        pytest
         
   frontend-build:
     runs-on: ubuntu-latest
