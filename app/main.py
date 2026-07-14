@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from app.api.v1 import ingestion, insights
+from app.api.v1 import ingestion, insights, clients, competitors, orchestration
 
 logging.basicConfig(level=logging.INFO)
 
@@ -12,6 +12,9 @@ app = FastAPI(
 
 app.include_router(ingestion.router, prefix="/api/v1")
 app.include_router(insights.router, prefix="/api/v1")
+app.include_router(clients.router, prefix="/api/v1")
+app.include_router(competitors.router, prefix="/api/v1")
+app.include_router(orchestration.router, prefix="/api/v1")
 
 @app.get("/")
 def root():

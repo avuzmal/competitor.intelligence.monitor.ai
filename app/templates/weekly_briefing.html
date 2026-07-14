@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Competitive Briefing</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9fc; color: #333333; line-height: 1.6;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f7f9fc; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <!-- Main Container -->
+                <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; margin: 0 auto; max-width: 600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #1a1f36; padding: 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">Monday Morning Competitive Briefing</h1>
+                            <p style="color: #8792a2; margin: 8px 0 0 0; font-size: 14px;">{{ date_str }} | Prepared for {{ client_name }}</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 30px 0; font-size: 16px; color: #4f566b;">Here is your weekly strategic breakdown of what your competitors are doing, what it means for the market, and how you should respond.</p>
+
+                            {% for insight_data in insights_list %}
+                            <!-- Competitor Block -->
+                            <div style="border: 1px solid #e3e8ee; border-radius: 6px; padding: 24px; margin-bottom: 24px;">
+                                <!-- Competitor Header & Badge -->
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 16px;">
+                                    <tr>
+                                        <td align="left">
+                                            <h2 style="margin: 0; font-size: 20px; color: #1a1f36;">{{ insight_data.competitor_name }}</h2>
+                                        </td>
+                                        <td align="right">
+                                            {% if insight_data.insight.threat_level.value == 'HIGH' %}
+                                                <span style="background-color: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase;">High Threat</span>
+                                            {% elif insight_data.insight.threat_level.value == 'MEDIUM' %}
+                                                <span style="background-color: #fef3c7; color: #b45309; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Medium Threat</span>
+                                            {% else %}
+                                                <span style="background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Low Threat</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Executive Summary -->
+                                <p style="margin: 0 0 20px 0; font-size: 15px; color: #3c4257; font-weight: 500; border-left: 3px solid #6366f1; padding-left: 12px;">
+                                    {{ insight_data.insight.executive_summary }}
+                                </p>
+
+                                <!-- What Changed -->
+                                <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #1a1f36; text-transform: uppercase; letter-spacing: 0.5px;">What Changed</h3>
+                                <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #4f566b; font-size: 14px;">
+                                    {% for item in insight_data.insight.what_changed %}
+                                    <li style="margin-bottom: 6px;"><strong>{{ item.category }}:</strong> {{ item.description }}</li>
+                                    {% endfor %}
+                                </ul>
+
+                                <!-- What it Means -->
+                                <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #1a1f36; text-transform: uppercase; letter-spacing: 0.5px;">What It Means</h3>
+                                <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #4f566b; font-size: 14px;">
+                                    {% for item in insight_data.insight.what_it_means %}
+                                    <li style="margin-bottom: 6px;"><strong>{{ item.category }}:</strong> {{ item.description }}</li>
+                                    {% endfor %}
+                                </ul>
+
+                                <!-- What to Do -->
+                                <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #1a1f36; text-transform: uppercase; letter-spacing: 0.5px;">What To Do</h3>
+                                <ul style="margin: 0; padding-left: 20px; color: #4f566b; font-size: 14px;">
+                                    {% for item in insight_data.insight.what_to_do %}
+                                    <li style="margin-bottom: 6px;"><strong>{{ item.category }}:</strong> {{ item.description }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endfor %}
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f7f9fc; padding: 20px 30px; text-align: center; border-top: 1px solid #e3e8ee;">
+                            <p style="margin: 0; font-size: 12px; color: #8792a2;">
+                                &copy; {{ year }} Competitor Radar. All rights reserved.<br>
+                                <a href="#" style="color: #6366f1; text-decoration: none;">Manage your preferences</a> or <a href="#" style="color: #6366f1; text-decoration: none;">Unsubscribe</a>.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
