@@ -1,68 +1,84 @@
-# Competitor Intelligence Monitor AI
+# Competitor Radar Core
 
-An automated Competitive Intelligence AI Agent that scrapes competitor data weekly, calculates exact changes (the "delta") compared to previous snapshots, and sends this data to an LLM to generate strategic business insights.
+An automated Competitive Intelligence AI Agent backend. 
 
-## Project Structure
+This product scrapes competitor data weekly via Apify, calculates the exact changes ("delta") compared to the previous week, and sends this delta to Anthropic's Claude to generate strategic business insights. These insights are then delivered to clients as premium, mobile-responsive HTML emails via Resend.
 
-```text
-competitor-radar-core/
-├── app/
-│   ├── main.py                 # FastAPI app entry point
-│   ├── core/
-│   │   ├── config.py           # Pydantic settings
-│   │   └── database.py         # DB session management
-│   ├── models/                 # SQLAlchemy Database Models
-│   │   ├── client.py           
-│   │   ├── competitor.py       
-│   │   └── snapshot.py         # Weekly data snapshot state memory
-│   ├── schemas/                # Pydantic V2 Models
-│   │   ├── apify.py            
-│   │   └── insights.py         # Structured output format for Claude
-│   ├── services/
-│   │   ├── apify_service.py    # Trigger Apify scraping
-│   │   ├── delta_engine.py     # Diffs new data vs old snapshot using DeepDiff
-│   │   ├── data_sanitizer.py   # Cleans and flattens data for LLM context window
-│   │   └── claude_service.py   # Anthropic API integration using Tool-use
-│   └── api/v1/
-│       ├── ingestion.py        # Trigger scrapes and save state
-│       └── insights.py         # Trigger AI analysis
-├── alembic/                    # DB migrations
-├── .env.example                # Example environment variables
-└── requirements.txt            # Python dependencies
-```
+## Tech Stack
+- **Language**: Python 3.11+
+- **Framework**: FastAPI
+- **Database**: PostgreSQL (SQLAlchemy 2.0 + Alembic)
+- **Validation**: Pydantic V2
+- **External APIs**: Apify (Scraping), Anthropic (AI), Resend (Email)
+- **Containerization**: Docker & Docker Compose
+- **Resilience & Observability**: Tenacity, Structlog
 
-## Setup & Installation
+---
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/avuzmal/competitor.intelligence.monitor.ai.git
-   cd competitor-radar-core
-   ```
+## 🚀 Running Locally with Docker Compose (Recommended)
 
-2. **Set up the virtual environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
-   ```
+You can spin up the entire application (FastAPI + PostgreSQL) easily with Docker Compose.
 
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` and fill in your keys:
+1. **Environment Variables**:
+   Copy the example environment file and fill in your API keys.
    ```bash
    cp .env.example .env
    ```
-   Add your `APIFY_API_TOKEN` and `ANTHROPIC_API_KEY`.
+   *Make sure you provide valid API keys for Apify, Anthropic, and Resend, as well as a strong `WEBHOOK_SECRET`.*
 
-4. **Initialize Database**:
+2. **Start the Stack**:
+   ```bash
+   docker compose up --build
+   ```
+   The API will be available at `http://localhost:8000`.
+
+3. **Run Database Migrations**:
+   While the containers are running, execute Alembic migrations inside the `app` container:
+   ```bash
+   docker compose exec app alembic upgrade head
+   ```
+
+---
+
+## 🛠 Manual Local Setup
+
+If you prefer to run it without Docker:
+
+1. **Virtual Environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Or .\venv\Scripts\Activate.ps1 on Windows
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run Migrations (SQLite default)**:
    ```bash
    alembic upgrade head
    ```
 
-5. **Run the Application**:
+4. **Start the Server**:
    ```bash
    uvicorn app.main:app --reload
    ```
 
-## Phases Completed
-- **Phase 1 (Foundation):** State management, Database models, Apify ingestion, Delta Engine.
-- **Phase 2 (The Implication Layer):** Data sanitization, strict Pydantic JSON schemas, and Anthropic Claude integration for strategic insight generation.
+---
+
+## 🔗 n8n Webhook Configuration
+
+To fully automate the weekly briefings, you should set up an orchestration pipeline in n8n (or any cron-like service). 
+
+### Setup Instructions for n8n:
+1. **Cron Node**: Create a Cron/Schedule Trigger node set to run every Sunday night (e.g., `0 20 * * 0`).
+2. **HTTP Request Node**:
+   - **Method**: `POST`
+   - **URL**: `https://<your-production-url>/api/v1/webhooks/n8n/trigger-all`
+   - **Headers**:
+     - `X-Webhook-Secret`: `<your-configured-WEBHOOK_SECRET>`
+3. **Execute**: When triggered, the backend will securely authenticate the request, fetch all active clients and their competitors, generate the AI insights in the background, and email the reports.
+
+If you need to test a specific client individually, use the endpoint:
+`POST /api/v1/webhooks/n8n/trigger-client/{client_id}`

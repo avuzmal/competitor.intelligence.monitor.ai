@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from deepdiff import DeepDiff
 import json
 
+import structlog
+
 from app.core.database import get_db
 from app.models.client import Client
 from app.models.snapshot import Snapshot
@@ -14,7 +16,7 @@ from app.services.claude_service import generate_strategic_insights
 from app.services.template_service import render_briefing_email
 from app.services.email_service import send_briefing
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/orchestrate", tags=["orchestration"])
 
 def _parse_diff(diff_obj: DeepDiff, *keys: str) -> dict:
@@ -40,9 +42,12 @@ def _process_weekly_briefings(db: Session):
     clients = db.query(Client).filter(Client.is_active == True).all()
     
     for client in clients:
+        client_log = logger.bind(client_id=client.id, client_name=client.name)
         insights_list: List[Dict[str, Any]] = []
         
         for competitor in client.competitors:
+            comp_log = client_log.bind(competitor_id=competitor.id, competitor_name=competitor.name)
+            
             # Fetch latest 2 snapshots
             snapshots = (
                 db.query(Snapshot)
@@ -53,7 +58,7 @@ def _process_weekly_briefings(db: Session):
             )
             
             if not snapshots:
-                logger.info(f"Skipping {competitor.name} - No snapshots found.")
+                comp_log.info("Skipping competitor - No snapshots found.")
                 continue
                 
             if len(snapshots) < 2:
@@ -73,7 +78,7 @@ def _process_weekly_briefings(db: Session):
             is_empty = not raw_delta.get("added_items") and not raw_delta.get("removed_items") and not raw_delta.get("modified_items")
             
             if is_empty:
-                logger.info(f"Skipping {competitor.name} - No changes.")
+                comp_log.info("Skipping competitor - No changes.")
                 continue
                 
             sanitized_text = sanitize_delta_for_llm(raw_delta)
@@ -94,9 +99,9 @@ def _process_weekly_briefings(db: Session):
         if insights_list:
             html_content = render_briefing_email(client.name, insights_list)
             send_briefing(client.email_address, client.name, html_content)
-            logger.info(f"Briefing sent successfully to {client.email_address}")
+            client_log.info("Briefing sent successfully to client")
         else:
-            logger.info(f"No insights to send for client {client.email_address}")
+            client_log.info("No insights to send for client")
 
 @router.post("/weekly-briefings", status_code=202)
 def trigger_weekly_briefings(

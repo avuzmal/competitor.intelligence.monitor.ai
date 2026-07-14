@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     resend_api_key: str = ""
     from_email: str = "Competitor Radar <hello@competitor-radar.com>"
+    webhook_secret: str = "super-secret-default-key-change-me"
+    log_level: str = "INFO"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

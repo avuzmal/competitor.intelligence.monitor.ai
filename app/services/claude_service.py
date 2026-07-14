@@ -1,81 +1,82 @@
-import logging
-from anthropic import Anthropic, APIError
+import json
+import structlog
+import anthropic
 from app.core.config import settings
 from app.schemas.insights import CompetitorInsight
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
-SYSTEM_PROMPT = """You are an elite Competitive Intelligence Strategist. Your job is to analyze weekly changes in a competitor's business and translate them into actionable strategy for your client.
-RULES:
-NO GENERIC ADVICE. Do not say 'improve marketing' or 'monitor closely'. Every recommendation must be a direct, specific response to the data provided.
-READ BETWEEN THE LINES. If they post 3 iOS developer jobs, the signal is 'mobile launch in 90 days'. If they drop prices by 20%, the signal is 'desperate for market share or responding to our new feature'.
-BE RUTHLESSLY OBJECTIVE. If the changes are trivial (e.g., they changed a footer copyright year), state clearly that there are no significant strategic shifts. Do not invent drama.
-FORMAT STRICTLY. You must output valid JSON matching the provided schema."""
+def get_claude_client():
+    if not settings.anthropic_api_key:
+        raise ValueError("ANTHROPIC_API_KEY is not configured.")
+    return anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+SYSTEM_PROMPT = """You are an expert Strategic Business Analyst. Your job is to read raw data 
+representing the exact changes (delta) on a competitor's website over the last week. 
+You must distill these changes into a high-level strategic briefing for executive leadership.
+
+You MUST respond ONLY with a strictly formatted JSON object matching this schema:
+{
+  "executive_summary": "A 1-2 sentence high-level summary of the most important strategic shift.",
+  "threat_level": "LOW|MEDIUM|HIGH",
+  "what_changed": [
+     {"category": "Pricing|Product|Marketing|Leadership|Other", "description": "Specific detail"}
+  ],
+  "what_it_means": [
+     {"category": "Strategy|Market Position|Financials", "description": "Specific detail"}
+  ],
+  "what_to_do": [
+     {"category": "Action|Monitor|Ignore", "description": "Specific detail"}
+  ]
+}
+Do NOT wrap the JSON in Markdown backticks or provide any conversational text before or after."""
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((anthropic.RateLimitError, anthropic.InternalServerError, Exception)),
+    reraise=True
+)
+def _call_claude(competitor_name: str, sanitized_delta: str) -> CompetitorInsight:
+    client = get_claude_client()
+    
+    logger.info("Calling Claude for insights", competitor_name=competitor_name)
+    response = client.messages.create(
+        model="claude-3-haiku-20240307",
+        max_tokens=1024,
+        system=SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user", 
+                "content": f"Competitor Name: {competitor_name}\n\nWeekly Delta:\n{sanitized_delta}"
+            }
+        ]
+    )
+    
+    raw_response = response.content[0].text.strip()
+    # Attempt to clean up markdown if present despite prompt instructions
+    if raw_response.startswith("```json"):
+        raw_response = raw_response[7:-3].strip()
+    
+    parsed_json = json.loads(raw_response)
+    return CompetitorInsight(**parsed_json)
+
 
 def generate_strategic_insights(competitor_name: str, sanitized_delta: str) -> CompetitorInsight:
-    if not settings.anthropic_api_key:
-        logger.error("Anthropic API key is missing.")
-        return CompetitorInsight(
-            executive_summary="API Key missing. Cannot generate insights.",
-            what_changed=[],
-            what_it_means=[],
-            what_to_do=[],
-            threat_level="LOW"
-        )
-        
-    client = Anthropic(api_key=settings.anthropic_api_key)
-    
-    # Use Anthropic's tool-use feature to enforce the Pydantic schema
-    schema = CompetitorInsight.model_json_schema()
-    # Pydantic JSON schema sometimes includes $defs, which Anthropic doesn't natively support 
-    # at the root level of tool inputs. However, Anthropic's strict JSON mode works well.
-    # We wrap it correctly:
-    
-    tools = [
-        {
-            "name": "record_competitor_insights",
-            "description": "Records the final strategic insights derived from the data.",
-            "input_schema": schema
-        }
-    ]
-    
-    user_prompt = f"Analyze the following changes for competitor: {competitor_name}\n\nDATA:\n{sanitized_delta}"
-    
+    """
+    Sends the sanitized delta data to Claude and returns a structured CompetitorInsight object.
+    Implements retries, and if it completely fails, returns a graceful fallback object.
+    """
     try:
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=2048,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": user_prompt}
-            ],
-            tools=tools,
-            tool_choice={"type": "tool", "name": "record_competitor_insights"}
-        )
-        
-        # Find the tool use block
-        for block in response.content:
-            if block.type == "tool_use" and block.name == "record_competitor_insights":
-                return CompetitorInsight(**block.input)
-                
-        logger.error("Claude did not return a tool_use block.")
-        raise ValueError("Invalid response format from Claude.")
-        
-    except APIError as e:
-        logger.error(f"Anthropic API Error: {e}")
-        return CompetitorInsight(
-            executive_summary=f"Anthropic API Error occurred: {e}",
-            what_changed=[],
-            what_it_means=[],
-            what_to_do=[],
-            threat_level="LOW"
-        )
+        return _call_claude(competitor_name, sanitized_delta)
     except Exception as e:
-        logger.error(f"Error parsing Claude response: {e}")
+        logger.error("Claude insights generation failed after retries", competitor_name=competitor_name, error=str(e))
+        # Fallback Mechanism to prevent crushing the whole pipeline
         return CompetitorInsight(
-            executive_summary=f"Parsing Error occurred: {e}",
+            executive_summary="AI Analysis temporarily unavailable for this competitor.",
+            threat_level="LOW",
             what_changed=[],
             what_it_means=[],
-            what_to_do=[],
-            threat_level="LOW"
+            what_to_do=[]
         )
