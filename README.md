@@ -29,7 +29,45 @@ It orchestrates scraping competitor websites, calculating structural changes ("d
 - 💳 **Stripe Billing**: Built-in subscription management for B2B clients.
 - 💻 **Premium Client Portal**: A Next.js 14 frontend utilizing Shadcn UI for a pristine user experience.
 
+## 🏗 Architecture & Data Pipeline
+
+The system is designed as an asynchronous, event-driven pipeline that moves data from raw HTML scrapes to executive summaries.
+
+```mermaid
+graph TD
+    %% Define Styles
+    classDef external fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef core fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef db fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef client fill:#fbb,stroke:#333,stroke-width:2px;
+
+    %% Orchestration
+    N8N[n8n Webhook Trigger]:::external -->|Initiates Weekly Run| API(FastAPI Backend):::core
+
+    %% Data Collection
+    API -->|1. Fetch Targets| DB[(PostgreSQL)]:::db
+    API -->|2. Trigger Scrape| APIFY[Apify Scraper]:::external
+    APIFY -->|3. Return Raw HTML/JSON| API
+
+    %% Delta Engine & AI
+    API -->|4. Compare with Last Week| DELTA{Delta Engine}:::core
+    DELTA -->|5. Extract Changes| CLAUDE[Anthropic Claude AI]:::external
+    CLAUDE -->|6. Generate Insights| API
+
+    %% Storage & Delivery
+    API -->|7. Save Briefing| DB
+    API -->|8a. Send Email| RESEND[Resend API]:::external
+    API -->|8b. Send Slack| SLACK[Slack Webhook]:::external
+    
+    %% Client Portal
+    USER((Client)):::client -->|Logs into Portal| NEXT[Next.js Dashboard]:::core
+    NEXT -->|Fetches Data| API
+    RESEND -->|Delivers Email| USER
+    SLACK -->|Delivers Message| USER
+```
+
 ---
+
 
 ## 🛠 Tech Stack
 
